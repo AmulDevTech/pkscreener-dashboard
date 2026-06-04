@@ -1,16 +1,29 @@
+name: PKScreener Auto Scan
+
+on:
+  schedule:
+    - cron: '0 3 * * 1-5'
+    - cron: '15 10 * * 1-5'
+  workflow_dispatch:
+
 jobs:
-scan:
-runs-on: ubuntu-latest
+  scan:
+    runs-on: ubuntu-latest
     timeout-minutes: 15
-permissions:
-contents: write
+    permissions:
+      contents: write
 
-@@ -23,8 +24,35 @@ jobs:
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-- name: Install dependencies
-run: |
-          pip install --upgrade pip
-          pip install yfinance pkscreener
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
           pip install --upgrade pip --quiet
           pip install yfinance --quiet
           pip install pkscreener --quiet --no-deps
@@ -41,9 +54,16 @@ run: |
               print("Login bypass applied")
           EOF
 
-     - name: Run PKScreener scans
-run: python scan.py
-@@ -39,4 +67,3 @@ jobs:
-         git add data.json dashboard.html
-         git diff --staged --quiet || git commit -m "Auto scan: $(date +'%d %b %Y %H:%M IST')"
-         git push
+      - name: Run PKScreener scans
+        run: python scan.py
+
+      - name: Inject data into dashboard
+        run: python inject.py
+
+      - name: Commit and push updated dashboard
+        run: |
+          git config user.name "PKScreener Bot"
+          git config user.email "pkscreener-bot@github-actions"
+          git add data.json dashboard.html
+          git diff --staged --quiet || git commit -m "Auto scan: $(date +'%d %b %Y %H:%M IST')"
+          git push
